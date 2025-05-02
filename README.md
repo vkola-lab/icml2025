@@ -1,2 +1,2 @@
-# icml2025
+# ICML2025
 Active feature acquisition via explainability-driven ranking

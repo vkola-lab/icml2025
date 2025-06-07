@@ -46,36 +46,15 @@ def data_split(dataset, val_portion=0.2, test_portion=0.2, random_state=0, tree_
     val_dataset = Subset(dataset, val_inds)
     train_dataset = Subset(dataset, train_inds)
 
-    
-    if if_metabric==True:
-        train_x = dataset.tensors[0][train_inds,:]
-        #train_y = dataset.tensors[1][train_inds]
-        train_y = dataset.tensors[2][train_inds]
-        shap_values_metabric_train= np.load('metabric_weighted_sampling_shap_custom_shap_train_nsamples4096.npy')   # aids_v0_tree_depth2_lr005_weighted_now2 #aids_v0_tree_depth2_lr005_weighted
-        shap_values_metabric_train=torch.tensor(shap_values_metabric_train)
-        train_dataset = TensorDataset(train_x,  shap_values_metabric_train, train_y)
-
-    if if_ckd==True:
-        train_x = dataset.tensors[0][train_inds,:]
-        #train_y = dataset.tensors[1][train_inds]
-        train_y = dataset.tensors[2][train_inds]
-        shap_values_metabric_train= np.load('kidney_sampling_shap_custom_shap_train_nsamples2048_correct_second_calc.npy')   # aids_v0_tree_depth2_lr005_weighted_now2 #aids_v0_tree_depth2_lr005_weighted
-        shap_values_metabric_train=torch.tensor(shap_values_metabric_train)
-        train_dataset = TensorDataset(train_x,  shap_values_metabric_train, train_y)
-
         
     if tree_return==True:
         train_x = dataset.tensors[0][train_inds,:]
-        #train_x_shap = dataset.tensors[1][train_inds]
-        #train_y = dataset.tensors[1][train_inds]
         train_y = dataset.tensors[2][train_inds]
 
         val_x = dataset.tensors[0][val_inds,:]
-        #val_y = dataset.tensors[1][val_inds]
         val_y = dataset.tensors[2][val_inds]
 
         test_x = dataset.tensors[0][test_inds,:]
-        #test_y = dataset.tensors[1][test_inds]
         test_y = dataset.tensors[2][test_inds]
 
         return train_x,  train_y, val_x, val_y, test_x, test_y # train_x_shap is required for AACO

@@ -5,7 +5,7 @@ import pandas as pd
 from torch.utils.data import Subset, TensorDataset
 from collections import Counter
 
-# this .py file is used to load the datasets for the tabular data experiments and taken from the Greedy paper's code [1].
+# this .py file is used to load the datasets for the tabular data experiments and taken from the Greedy paper's code [1] and modified to load the shap values.
 # [1] Covert, Ian Connick, et al. "Learning to maximize mutual information for dynamic feature selection." International Conference on Machine Learning. PMLR, 2023.
 # this is the url for the datasets in the dynamic-selection repo
 GITHUB_URL = 'https://raw.githubusercontent.com/iancovert/dynamic-selection/main/datasets/'
@@ -46,7 +46,6 @@ def data_split(dataset, val_portion=0.2, test_portion=0.2, random_state=0, tree_
     val_dataset = Subset(dataset, val_inds)
     train_dataset = Subset(dataset, train_inds)
 
-        
     if tree_return==True:
         train_x = dataset.tensors[0][train_inds,:]
         train_y = dataset.tensors[2][train_inds]
@@ -63,10 +62,10 @@ def data_split(dataset, val_portion=0.2, test_portion=0.2, random_state=0, tree_
 
 
 
-def load_cir(features=None):
+def load_cirr(features=None):
     # Load data.
     import pandas as pd
-    df = pd.read_csv('/projectnb/vkolagrp/ketanss/dynamic-selection/experiments/tabular/cir_pre.csv')
+    df = pd.read_csv('datasets/cirr_pre.csv')
     # Set features.
     df['Outcome'] = df['Status']
     df.drop(columns=['Status'], inplace=True)
@@ -84,9 +83,9 @@ def load_cir(features=None):
     
 
     
-    shap_values = np.load('cirr_oracle_shap.npy')   # aids_v0_tree_depth2_lr005_weighted_now2 #aids_v0_tree_depth2_lr005_weighted
-    shap_values=torch.tensor(shap_values)
-    dataset = TensorDataset(torch.from_numpy(x),  shap_values, torch.from_numpy(y)) # shap_values_spam
+    shap_values = np.load('datasets/cirr_tree_shap.npy')   
+    shap_values = torch.tensor(shap_values)
+    dataset = TensorDataset(torch.from_numpy(x),  shap_values, torch.from_numpy(y)) 
     dataset.features = features
     dataset.input_size = x.shape[1]
     dataset.output_size = len(np.unique(y))
@@ -95,7 +94,7 @@ def load_cir(features=None):
 def load_aids(features=None):
     # Load data.
     import pandas as pd
-    df = pd.read_csv('/projectnb/vkolagrp/ketanss/dynamic-selection/experiments/tabular/aids.csv')
+    df = pd.read_csv('datasets/aids.csv')
 
     if features is None:
         features = np.array([f for f in df.columns if f not in ['Outcome']])
@@ -105,15 +104,14 @@ def load_aids(features=None):
             features = np.array(features)
     # Extract x, y.
 
-    # aids_v0_tree_depth2_lr005_weighted
     x = np.array(df.drop(['Outcome'], axis=1)[features]).astype('float32')
     y = np.array(df['Outcome']).astype('int64')
     # Create dataset object.
 
-    shap_values = np.load('aids_oracle_shap.npy')  
-    shap_values=torch.tensor(shap_values)
+    shap_values = np.load('datasets/aids_tree_shap.npy')  
+    shap_values = torch.tensor(shap_values)
 
-    dataset = TensorDataset(torch.from_numpy(x),  shap_values, torch.from_numpy(y)) #shap_values_spam,
+    dataset = TensorDataset(torch.from_numpy(x),  shap_values, torch.from_numpy(y)) 
     dataset.features = features
     dataset.input_size = x.shape[1]
     dataset.output_size = len(np.unique(y))
@@ -130,7 +128,7 @@ def load_metabric(features=None):
         'Basal': 4,
         'Normal': 5
     }
-    data = pd.read_csv("/projectnb/vkolagrp/datasets/Metabric/METABRIC_RNA_classification.csv")
+    data = pd.read_csv("datasets/METABRIC_RNA_classification.csv")
     data['pam50_+_claudin-low_subtype'] = data['pam50_+_claudin-low_subtype'].map(pam50_mapping)
 
     data = data.dropna(subset=['pam50_+_claudin-low_subtype'])
@@ -148,15 +146,9 @@ def load_metabric(features=None):
     x = np.array(data.drop(['Outcome'], axis=1)[features]).astype('float32')
     y = np.array(data['Outcome']).astype('int64')
 
-    shap_values = np.load('metabric_tree.npy') # metabric_surr_v37_deep | (tree_based): metabric_surr_v22_deep 
-    
-    # metabric_tree
-    # metabric_oracle_shap
-    # metabric_lime_shap
-    # metabric_oracle_shap
-    # metabric_sampling_shap
+    shap_values = np.load('datasets/metabric_tree_shap.npy')
+    shap_values = torch.tensor(shap_values)
 
-    shap_values=torch.tensor(shap_values)
     # Create dataset object.
     dataset = TensorDataset(torch.from_numpy(x),  shap_values, torch.from_numpy(y)) # shap_values_spam
     dataset.features = features
@@ -168,7 +160,7 @@ def load_metabric(features=None):
 
 
 def load_ckd(features=None):
-    df = pd.read_csv('/projectnb/vkolagrp/ketanss/dynamic-selection/experiments/tabular/ckd.csv')
+    df = pd.read_csv('datasets/ckd.csv')
     df['Outcome'] = df['Diagnosis']
     df = df.drop(columns=['PatientID','Ethnicity','DoctorInCharge','Diagnosis'])
     if features is None:
@@ -182,24 +174,13 @@ def load_ckd(features=None):
     y = np.array(df['Outcome']).astype('int64')
     # Create dataset object.
 
-    #good:
-    #kidney_v0_tree_depth2_lr005_weighted
-
-    #bad:
-    #kidney_v0_tree_depth2_lr005_weighted_combined
-
-    #kidney_sampling_shap
-    #kidney_oracle_shap
-    #kidney_v0_tree_depth2_lr005_weighted
-    #ckd_invase
-    shap_values_spam = np.load('kidney_oracle_shap.npy') 
+    shap_values = np.load('datasets/kidney_tree_shap.npy') 
     
    
-    shap_values_spam=torch.tensor(shap_values_spam)
+    shap_values = torch.tensor(shap_values)
     # Create dataset object.
-    dataset = TensorDataset(torch.from_numpy(x), shap_values_spam, torch.from_numpy(y)) #shap_values_spam
+    dataset = TensorDataset(torch.from_numpy(x), shap_values, torch.from_numpy(y)) 
 
-    #dataset = TensorDataset(torch.from_numpy(x), torch.from_numpy(y))
     dataset.features = features
     dataset.input_size = x.shape[1]
     dataset.output_size = len(np.unique(y))
@@ -223,14 +204,12 @@ def load_spam(features=None):
     x = np.array(data.drop(['Outcome'], axis=1)[features]).astype('float32')
     y = np.array(data['Outcome']).astype('int64')
     
-    #spam_v1_tree_depth4_lr01
-    shap_values_spam = np.load('spam_v1_tree_depth4_lr01.npy')  #_kernel_shap
+    shap_values = np.load('datasets/spam_tree_shap.npy')  #_kernel_shap
     
    
-    shap_values_spam=torch.tensor(shap_values_spam)
+    shap_values = torch.tensor(shap_values)
     # Create dataset object.
-    dataset = TensorDataset(torch.from_numpy(x), shap_values_spam, torch.from_numpy(y)) #shap_values_spam
-
+    dataset = TensorDataset(torch.from_numpy(x), shap_values, torch.from_numpy(y)) 
    
     
     dataset.features = features
@@ -243,7 +222,7 @@ def load_spam(features=None):
 DATASET_FUNCTIONS = {
     'aids': load_aids,
     'ckd': load_ckd,
-    'cir': load_cir,
+    'cirr': load_cirr,
     'metabric': load_metabric,
     'spam': load_spam,
 }

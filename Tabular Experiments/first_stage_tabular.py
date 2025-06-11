@@ -7,28 +7,21 @@ import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 import numpy as np
 
-import argparse
-import pandas as pd
-import csv
 import time
-# "vit_small_patch16_224"
-from models import *
+import argparse
 from fastshap.utils import MaskLayer
 from copy import deepcopy
 from tabular_dataset import get_dataset, data_split
-# Set the device
 import os
-#os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-#os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+from gpt_model import GPT, GPTConfig
 print(os.getenv("CUDA_VISIBLE_DEVICES"))
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 from torch.utils.data import Dataset
 from torchmetrics import  Accuracy, AUROC
-# parsers from the ViT github repo
 parser = argparse.ArgumentParser(description='Active Feature Acquisition Via Explainability-driven Ranking')
 
 parser.add_argument('--dataset', 
-                       choices=['spam', 'metabric', 'cir', 'aids', 'ckd'], 
+                       choices=['spam', 'metabric', 'cps', 'ctgs', 'ckd'], 
                        default='metabric', help='Dataset name')
 
 parser.add_argument('--lr', default=1e-3, type=float, help='learning rate') # resnets.. 1e-3, Vit..1e-4
@@ -107,10 +100,7 @@ class TabularSHAP(Dataset):
         return len(self.dataset)
 
     def __getitem__(self, idx):
-        #print(idx)
         x, x_shap, y = self.dataset[idx]
-        #x_shap = self.shap_vals[idx,:,:]
-        #import time; time.sleep(100)
         return x, x_shap, y
 
 
@@ -167,8 +157,8 @@ class MaskingPretrainer(nn.Module):
             mask_size,
             nepochs,
             loss_fn,
-            val_loss_fn=None,
-            val_loss_mode=None,
+            val_metric_fn=None,
+            val_metric_mode='max',
             factor=0.2,
             patience=2,
             min_lr=1e-6,
@@ -192,12 +182,10 @@ class MaskingPretrainer(nn.Module):
           verbose:
         '''
         # Verify arguments.
-        if val_loss_fn is None:
-            val_loss_fn = loss_fn
-            val_loss_mode = 'min'
-        else:
-            if val_loss_mode is None:
-                raise ValueError('must specify val_loss_mode (min or max) when validation_loss_fn is specified')
+        if val_metric_fn is None:
+            val_metric_fn = loss_fn
+            val_metric_mode = 'min'
+
         
         # Set up optimizer and lr scheduler.
         model = self.model
@@ -205,7 +193,7 @@ class MaskingPretrainer(nn.Module):
         #device = next(model.parameters()).device
         opt = optim.Adam(model.parameters(), lr=lr)
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-            opt, mode=val_loss_mode, factor=factor, patience=patience,
+            opt, mode=val_metric_mode, factor=factor, patience=patience,
             min_lr=min_lr, verbose=verbose)
         
         best_model = None
@@ -268,21 +256,19 @@ class MaskingPretrainer(nn.Module):
                 # Calculate loss.
                 y = torch.cat(label_list, 0)
                 pred = torch.cat(pred_list, 0)
-                val_loss = val_loss_fn(pred, y).item()
+                val_metric = val_metric_fn(pred, y).item()
                 
             
             # Print progress.
             if verbose:
                 print(f'{"-"*8}Epoch {epoch+1}{"-"*8}')
-                print(f'Val loss = {val_loss:.4f}\n')
-                print(f'Val Acc = {100 * total_correct_val / total_samples_val:.4f} ')
+                print(f'Val Metric = {val_metric:.4f}\n')
                 
             # Update scheduler.
-            val_loss = 100 - (100 * total_correct_val / total_samples_val) #.item()
-            scheduler.step(val_loss)
+            scheduler.step(val_metric)
 
             # Check if best model.
-            if val_loss == scheduler.best:
+            if val_metric == scheduler.best:
                 best_model = deepcopy(model)
                 num_bad_epochs = 0
             else:
@@ -296,15 +282,25 @@ class MaskingPretrainer(nn.Module):
 
         # Copy parameters from best model.
         restore_parameters(model, best_model)
-def onehot(label, n_classes):
-    return torch.zeros(label.size(0), n_classes).scatter_(
-        1, label.view(-1, 1), 1)
+
+# Initialize wandb 
+usewandb = ~args.nowandb
+if usewandb:
+    import wandb
+    wandb.init(project=args.wandb_project,
+            name=args.wandb_name) # it was 32
+    wandb.config.update(args)
 
 
 dataset = get_dataset(args.dataset)
 
 d_in = dataset.input_size
 d_out = dataset.output_size
+
+if d_out == 2:
+    metric = lambda pred, y: AUROC(num_classes=d_out)(pred.softmax(dim=1), y) 
+else:
+    metric = Accuracy(num_classes=d_out) 
 
 mean = dataset.tensors[0].mean(dim=0)
 std = torch.clamp(dataset.tensors[0].std(dim=0), min=1e-3)
@@ -313,14 +309,6 @@ train_dataset, val_dataset, test_dataset = data_split(dataset) #, if_metabric=Tr
 
 pre_trainloader = torch.utils.data.DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=8) # generator=g) #bs #32
 
-# Initialize wandb 
-usewandb = ~args.nowandb
-if usewandb:
-    import wandb
-    watermark = "{}_lr{}".format(args.net, args.lr)
-    wandb.init(project=args.wandb_project,
-            name=args.wandb_name) # it was 32
-    wandb.config.update(args)
 
 
 
@@ -341,18 +329,18 @@ print(net)
 # Set up mini-GPT model
 
 number_of_actions = d_in #vocab_size
-block_size = 4
-nhead = 4
+block_size = args.n_blocks
+nhead = args.n_head
 
 
-max_fea = 35 
-max_val_fea = 30
+max_fea = args.max_fea 
+max_val_fea = args.max_val_fea
 
 mask_layer = MaskLayer(append=True)
 pretrain = MaskingPretrainer(net, mask_layer).to(device)
 
 
-print('beginning pre-training...')
+# print('beginning pre-training...')
 pretrain.fit(
     pre_trainloader,
     valloader,
@@ -362,36 +350,24 @@ pretrain.fit(
     patience=3,
     nepochs=250,
     loss_fn=nn.CrossEntropyLoss(),
+    val_metric_fn=metric,
     verbose=True)
 print('done pretraining')
 
-#net.load_state_dict(torch.load('ckpts/metabric_oracle.ckpt'))
-#net_gpt = deepcopy(net)
 
-
-mconf = GPTConfig(number_of_actions, block_size,
-                  n_layer=3, n_head=nhead, n_embd=args.n_embd, model_type='reward_conditioned', max_timestep=number_of_actions)
+mconf = GPTConfig(number_of_actions,  args.n_blocks,
+                  n_layer=args.n_layer, n_head=args.n_head, n_embd=args.n_embd, model_type='reward_conditioned', max_timestep=number_of_actions)
 model_gpt = GPT(mconf,d_out) #conf,state_emb_net,n_class
 model_gpt = model_gpt.to(device)
 # Loss is CE
 criterion = nn.CrossEntropyLoss()
 if args.opt == "adam":
     optimizer = optim.Adam(set(list(net.parameters()) +list(model_gpt.parameters())), lr=1e-3, weight_decay=1e-3) # lr=1e-3 + list(net_gpt.parameters()) #
-    #optimizer = optim.AdamW(set(list(net.parameters()) +list(model_gpt.parameters())), lr=5e-3, weight_decay=1e-4)
 elif args.opt == "sgd":
     optimizer = optim.SGD(net.parameters(), lr=args.lr)  
 
 # use cosine scheduling
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, args.n_epochs)
-
-
-
-if d_out == 2:
-    metric = lambda pred, y: AUROC(num_classes=d_out)(pred.softmax(dim=1), y) # Accuracy(num_classes=6) # task="multiclass",
-else:
-    metric = Accuracy(num_classes=d_out) #lambda pred, y: AUROC(task='multiclass', num_classes=d_out)(pred.softmax(dim=1), y) task="multiclass",
-
-
 
 ##### Training
 use_amp = not args.noamp
@@ -400,11 +376,8 @@ soft_func = nn.LogSoftmax(dim=1)
 max_float16 = 65504 #3.4028235e+38 #np.finfo(np.float32).max
 
 
-
-
-
 # The prediction network is trained in a classical way
-# The mini-GPT model is trained as the next token predcition, i.e. next action prediction
+# The policy network (mini-GPT) is trained as the next token predcition, i.e. next action prediction
 def train(epoch):
     print('\nEpoch: %d' % epoch)
     net.train()
@@ -413,32 +386,20 @@ def train(epoch):
     train_loss = 0
     correct = 0
     total = 0
-    #for iijjkk in range(5):
-    iijjkk = 0
     total_loss = 0
     for batch_idx, (inputs1, values_original,targets) in enumerate(trainloader): #inputs4, inputs5,
-        values1 = values_original[np.arange(values_original.shape[0]),:,np.array((targets))].reshape((values_original.shape[0],number_of_actions))
+        values1 = values_original #[np.arange(values_original.shape[0]),:,np.array((targets))].reshape((values_original.shape[0],number_of_actions))
         values = torch.cat((values1,values1,values1),dim=0)
 
         sorted_indices = torch.argsort(torch.abs(values), dim=1).to(device)
 
         
         inputs1 = inputs1.to(device)
-   
-
-        
-
-        
-
         inputs = torch.cat((inputs1,inputs1,inputs1),dim=0)
         targets = torch.cat((targets,targets,targets),dim=0).to(device) 
         
         
-        sorted_indices = (move_features_to_end(sorted_indices,[third_fea,second_fea,init_fea],device)) #third_fea,second_fea,
-       
-        
-        
-
+        sorted_indices = (move_features_to_end(sorted_indices,[third_fea,second_fea,init_fea],device))                       
         S = torch.zeros_like(sorted_indices,dtype=torch.float) #.to(device)
         
         ix = torch.randint(max_fea-block_size-1,(S.shape[0],)) # 20 is # of max features
@@ -483,8 +444,6 @@ def train(epoch):
         optimizer.zero_grad()
 
         total_loss += loss.cpu().item()
-        #if iijjkk == 0:
-        #    break
     print(total_loss)
     return loss
 
@@ -495,7 +454,7 @@ def test(epoch):
     #net_gpt.eval()
     model_gpt.eval()
     test_loss = 0
-    correct = torch.zeros(max_val_fea) #instead of max_fea there was 30
+    correct = torch.zeros(max_val_fea) 
     total = 0
     pred_list = [[] for _ in range(max_val_fea)]
     label_list = []
@@ -509,9 +468,7 @@ def test(epoch):
 
                 inputs_all = torch.repeat_interleave(inputs_original,block_size,dim=0)
                 targets = targets.to(device)
-
-              
-            
+                          
                 S = torch.zeros((input_batch_size,number_of_actions),dtype=torch.float).to(device)
                 S[:,init_fea] = 1.0
                 S_new = S
@@ -544,7 +501,7 @@ def test(epoch):
                         actions = torch.cat((actions,actions_to_add),dim=1)
                         S_old = S_new
                         S_new = torch.repeat_interleave(S,count_block,dim=0)
-                        #S_new[torch.arange(count_block-1,S_new.shape[0],count_block),:] = S_new[torch.arange(count_block-2,S_new.shape[0],count_block),:]
+
                         for ijk_tmp in range(1,count_block-1):
                             S_new[torch.arange(ijk_tmp,S_new.shape[0],count_block),:] = S_old[torch.arange(ijk_tmp,S_old.shape[0],count_block-1),:]
                        
@@ -578,24 +535,18 @@ def test(epoch):
                         pred_list[ijk].append(out_append)
                    
                     correct[ijk] += predicted.eq(targets).sum().item()
-    auroc_score = 0
+    metric_score = 0
     for i in range(max_val_fea):
         pred = torch.cat(pred_list[i], 0)
         y = torch.cat(label_list, 0)
-        auroc_score += metric(pred, y)
+        metric_score += metric(pred, y)
     correct = torch.mean(correct).item()
-    print(auroc_score/max_val_fea)
-    return test_loss, auroc_score
-
-list_loss = []
-list_acc = []
-
-if usewandb:
-    wandb.watch(net)
+    print(metric_score/max_val_fea)
+    return test_loss, metric_score
 
 
 best_acc = 0  # best test accuracy
-start_epoch = 0  # start from epoch 0 or last checkpoint epoch    
+start_epoch = 0     
 
 
 for epoch in range(start_epoch, args.n_epochs):
@@ -607,11 +558,8 @@ for epoch in range(start_epoch, args.n_epochs):
             best_acc = acc
             torch.save(net.state_dict(),args.net_ckpt )
             torch.save(model_gpt.state_dict(),args.GPT_ckpt )
-        
-    
-    scheduler.step(epoch-1) # step cosine scheduling      
-    #list_loss.append(val_loss)     
-    #list_acc.append(acc)
+           
+    scheduler.step(epoch-1) 
     
     # Log training..
     if (epoch+1)%5==0:
@@ -622,7 +570,5 @@ for epoch in range(start_epoch, args.n_epochs):
         if usewandb:
             wandb.log({'epoch': epoch, 'train_loss': trainloss, "lr": optimizer.param_groups[0]["lr"],
             "epoch_time": time.time()-start})
-# writeout wandb
-if usewandb:
-    wandb.save("wandb_{}.h5".format(args.net))
+
     

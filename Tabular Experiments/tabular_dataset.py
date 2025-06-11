@@ -62,10 +62,10 @@ def data_split(dataset, val_portion=0.2, test_portion=0.2, random_state=0, tree_
 
 
 
-def load_cirr(features=None):
+def load_cps(features=None):
     # Load data.
     import pandas as pd
-    df = pd.read_csv('datasets/cirr_pre.csv')
+    df = pd.read_csv('/projectnb/vkolagrp/ketanss/dynamic-selection/experiments/tabular/cir_pre.csv')
     # Set features.
     df['Outcome'] = df['Status']
     df.drop(columns=['Status'], inplace=True)
@@ -83,7 +83,7 @@ def load_cirr(features=None):
     
 
     
-    shap_values = np.load('datasets/cirr_tree_shap.npy')   
+    shap_values = np.load('cirr_tree_shap.npy')   
     shap_values = torch.tensor(shap_values)
     dataset = TensorDataset(torch.from_numpy(x),  shap_values, torch.from_numpy(y)) 
     dataset.features = features
@@ -91,10 +91,10 @@ def load_cirr(features=None):
     dataset.output_size = len(np.unique(y))
     return dataset
     
-def load_aids(features=None):
+def load_ctgs(features=None):
     # Load data.
     import pandas as pd
-    df = pd.read_csv('datasets/aids.csv')
+    df = pd.read_csv('/projectnb/vkolagrp/ketanss/dynamic-selection/experiments/tabular/aids.csv')
 
     if features is None:
         features = np.array([f for f in df.columns if f not in ['Outcome']])
@@ -104,11 +104,12 @@ def load_aids(features=None):
             features = np.array(features)
     # Extract x, y.
 
+    # aids_v0_tree_depth2_lr005_weighted
     x = np.array(df.drop(['Outcome'], axis=1)[features]).astype('float32')
     y = np.array(df['Outcome']).astype('int64')
     # Create dataset object.
 
-    shap_values = np.load('datasets/aids_tree_shap.npy')  
+    shap_values = np.load('aids_tree_shap.npy')  
     shap_values = torch.tensor(shap_values)
 
     dataset = TensorDataset(torch.from_numpy(x),  shap_values, torch.from_numpy(y)) 
@@ -128,7 +129,7 @@ def load_metabric(features=None):
         'Basal': 4,
         'Normal': 5
     }
-    data = pd.read_csv("datasets/METABRIC_RNA_classification.csv")
+    data = pd.read_csv("/projectnb/vkolagrp/datasets/Metabric/METABRIC_RNA_classification.csv")
     data['pam50_+_claudin-low_subtype'] = data['pam50_+_claudin-low_subtype'].map(pam50_mapping)
 
     data = data.dropna(subset=['pam50_+_claudin-low_subtype'])
@@ -146,11 +147,12 @@ def load_metabric(features=None):
     x = np.array(data.drop(['Outcome'], axis=1)[features]).astype('float32')
     y = np.array(data['Outcome']).astype('int64')
 
-    shap_values = np.load('datasets/metabric_tree_shap.npy')
+    shap_values = np.load('metabric_tree_shap.npy')
     shap_values = torch.tensor(shap_values)
 
     # Create dataset object.
     dataset = TensorDataset(torch.from_numpy(x),  shap_values, torch.from_numpy(y)) # shap_values_spam
+
     dataset.features = features
     dataset.input_size = x.shape[1]
     dataset.output_size = len(np.unique(y))
@@ -160,7 +162,7 @@ def load_metabric(features=None):
 
 
 def load_ckd(features=None):
-    df = pd.read_csv('datasets/ckd.csv')
+    df = pd.read_csv('/projectnb/vkolagrp/ketanss/dynamic-selection/experiments/tabular/ckd.csv')
     df['Outcome'] = df['Diagnosis']
     df = df.drop(columns=['PatientID','Ethnicity','DoctorInCharge','Diagnosis'])
     if features is None:
@@ -174,7 +176,7 @@ def load_ckd(features=None):
     y = np.array(df['Outcome']).astype('int64')
     # Create dataset object.
 
-    shap_values = np.load('datasets/kidney_tree_shap.npy') 
+    shap_values = np.load('kidney_tree_shap.npy') 
     
    
     shap_values = torch.tensor(shap_values)
@@ -204,7 +206,7 @@ def load_spam(features=None):
     x = np.array(data.drop(['Outcome'], axis=1)[features]).astype('float32')
     y = np.array(data['Outcome']).astype('int64')
     
-    shap_values = np.load('datasets/spam_tree_shap.npy')  #_kernel_shap
+    shap_values = np.load('spam_tree_shap.npy')  #_kernel_shap
     
    
     shap_values = torch.tensor(shap_values)
@@ -220,9 +222,9 @@ def load_spam(features=None):
 
 # Transform registry for easy access
 DATASET_FUNCTIONS = {
-    'aids': load_aids,
+    'ctgs': load_ctgs,
     'ckd': load_ckd,
-    'cirr': load_cirr,
+    'cps': load_cps,
     'metabric': load_metabric,
     'spam': load_spam,
 }

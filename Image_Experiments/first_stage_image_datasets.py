@@ -1,5 +1,12 @@
-# -*- coding: utf-8 -*-
+# The base code of this .py file is taken from:
+# https://github.com/kentaroy47/vision-transformers-cifar10/blob/main/train_cifar10.py
+# , then updated.
+
 from __future__ import print_function
+
+import sys
+import os
+
 
 import torch
 import torch.nn as nn
@@ -15,7 +22,7 @@ import pandas as pd
 import csv
 import time
 # "vit_small_patch16_224"
-from models import *
+
 #from resnet import ResNet18, ResNet34
 from copy import deepcopy
 from torch.utils.data import Dataset
@@ -30,9 +37,11 @@ from image_models import get_model
 from fastshap import ImageSurrogate
 from fastshap import FastSHAP
 
+from model_gpt import *
 
 from image_transforms import get_dataset
 from image_models import get_model
+from vit import PredictorViT, ValueNetworkViT
 # Set the device
 import os
 #os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"

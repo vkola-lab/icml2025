@@ -1,10 +1,6 @@
-# -*- coding: utf-8 -*-
-'''
-
-Train CIFAR10 with PyTorch and Vision Transformers!
-written by @kentaroy47, @arutema47
-
-'''
+# The base code of this .py file is taken from:
+# https://github.com/kentaroy47/vision-transformers-cifar10/blob/main/train_cifar10.py
+# , then updated.
 
 from __future__ import print_function
 
@@ -24,18 +20,15 @@ import pandas as pd
 import csv
 import time
 
-from models import *
+from model_gpt import *
 
-from utils import *
 # FastSHAP related
 from fastshap import FastSHAP
 from fastshap import ImageSurrogate
 from fastshap.image_imputers import ImageImputer
-#from resnet import ResNet18, ResNet34
+
 from copy import deepcopy
 from torch.utils.data import Dataset
-from resnet import ResNet18
-#from resnet_original import resnet18, resnet50, AllInOneResnet50
 from fastshap import ImageSurrogate
 from unet import UNet
 from fastshap import FastSHAP
@@ -216,16 +209,16 @@ def train(epoch):
         values = torch.abs(torch.cat((values1,values2,values3),dim=0))
         
 
-        inputs_original = torch.cat((inputs1,inputs2,inputs3),dim=0) #,inputs4,inputs5
+        inputs_original = torch.cat((inputs1,inputs2,inputs3),dim=0)
 
         targets = targets.to(device)
-        targets = torch.cat((targets,targets,targets),dim=0) #,targets,targets
+        targets = torch.cat((targets,targets,targets),dim=0) 
        
 
         
-        S = torch.zeros_like(values,dtype=torch.float) #.to(device)
+        S = torch.zeros_like(values,dtype=torch.float) 
         
-        ix = torch.randint(max_fea-block_size-1,(S.shape[0],)) # 20 is # of max features
+        ix = torch.randint(max_fea-block_size-1,(S.shape[0],)) 
 
         max_ix = torch.max(ix)
         sorted_indices_predicted = torch.zeros_like(values)

@@ -18,7 +18,7 @@ Once the datasets are installed, you can train and evaluate our AFA method on th
    Example inside the file:
    ```bash
    # Options: spam, metabric, cps, ctgs, ckd
-   dataset=cifar10
+   dataset=cps
 2.
     ```bash
     sh train_and_test_tabular.sh

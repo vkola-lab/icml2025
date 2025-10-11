@@ -1,9 +1,6 @@
 #!/bin/bash -l
 
-conda activate /projectnb/vkolagrp/osman
-
-
-dataset="imagenette"  # Default dataset
+dataset="cifar10"  # Default dataset
 
 if [ "$dataset" = "cifar100" ]; then
     max_fea=20
@@ -66,7 +63,7 @@ fi
 
 
 
-wandb_project=${dataset} # CIFAR100
+wandb_project=${dataset} 
 wandb_name="v1_first_stage" 
 max_val_fea=20
 n_layer=3
@@ -109,4 +106,27 @@ python second_stage_image_datasets.py  --n_layer ${n_layer} --n_head ${n_head} -
                                   --net_ckpt ${net_ckpt} --GPT_ckpt ${GPT_ckpt} --GPT_fea_ckpt ${GPT_fea_ckpt}
 
 
+echo "First stage results"
+python test_image_datasets.py  --n_layer ${n_layer} --n_head ${n_head} --n_blocks ${n_blocks} \
+                                  --shared_backbone \
+                                  --max_fea ${max_fea} --num_classes ${num_classes} \
+                                  --init_fea ${init_fea} --second_fea ${second_fea} --third_fea ${third_fea}  \
+                                  --dataset ${dataset} \
+                                  --image_size ${image_size} --patch_size ${patch_size} \
+                                  --net_ckpt ${net_ckpt} --GPT_ckpt ${GPT_ckpt} --GPT_fea_ckpt ${GPT_fea_ckpt}
+
+
+net_ckpt_second_stage="${net_ckpt/.ckpt/_second_stage.ckpt}"
+GPT_ckpt_second_stage="${GPT_ckpt/.ckpt/_second_stage.ckpt}"
+GPT_fea_ckpt_second_stage="${GPT_fea_ckpt/.ckpt/_second_stage.ckpt}"
+
+echo "---------------------------------------------------------------"
+echo "Second stage results"
+python test_image_datasets.py  --n_layer ${n_layer} --n_head ${n_head} --n_blocks ${n_blocks} \
+                                  --shared_backbone \
+                                  --max_fea ${max_fea} --num_classes ${num_classes} \
+                                  --init_fea ${init_fea} --second_fea ${second_fea} --third_fea ${third_fea}  \
+                                  --dataset ${dataset} \
+                                  --image_size ${image_size} --patch_size ${patch_size} \
+                                  --net_ckpt ${net_ckpt_second_stage} --GPT_ckpt ${GPT_ckpt_second_stage} --GPT_fea_ckpt ${GPT_fea_ckpt_second_stage}
 

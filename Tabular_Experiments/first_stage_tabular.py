@@ -9,11 +9,11 @@ import numpy as np
 
 import time
 import argparse
-from fastshap.utils import MaskLayer
+
 from copy import deepcopy
 from tabular_dataset import get_dataset, data_split
 import os
-from gpt_model import GPT, GPTConfig
+from model_gpt import GPT, GPTConfig
 print(os.getenv("CUDA_VISIBLE_DEVICES"))
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 from torch.utils.data import Dataset
@@ -33,7 +33,7 @@ parser.add_argument('--dp', action='store_true', help='use data parallel')
 
 parser.add_argument('--net_ckpt')
 parser.add_argument('--GPT_ckpt')
-parser.add_argument('--GPT_fea_ckpt')
+
 parser.add_argument('--n_blocks', type=int, default='8')
 parser.add_argument('--n_layer', type=int, default='3')
 parser.add_argument('--n_convs', type=int, default='2')
@@ -45,7 +45,6 @@ parser.add_argument('--n_embd',  type=int)
 parser.add_argument('--max_fea', type=int, default='50')
 parser.add_argument('--max_val_fea', type=int, default='20')
 
-parser.add_argument('--shared_backbone', action='store_true', help="Enable the feature")
 parser.add_argument('--n_epochs', type=int, default='200')
 
 parser.add_argument('--init_fea',  type=int)
@@ -57,7 +56,24 @@ parser.add_argument('--wandb_project')
 parser.add_argument('--dataset_path')
 args = parser.parse_args()
 
+class MaskLayer(nn.Module):
+    '''
+    Mask layer for tabular data.
+    
+    Args:
+      append:
+      mask_size:
+    '''
+    def __init__(self, append, mask_size=None):
+        super().__init__()
+        self.append = append
+        self.mask_size = mask_size
 
+    def forward(self, x, m):
+        out = x * m
+        if self.append:
+            out = torch.cat([out, m], dim=1)
+        return out
 
 def move_features_to_end(sorted_indices, features_to_move, device):
     """
@@ -556,6 +572,8 @@ for epoch in range(start_epoch, args.n_epochs):
         val_loss, acc = test(epoch)
         if acc > best_acc:
             best_acc = acc
+            os.makedirs(os.path.dirname(args.net_ckpt), exist_ok=True)
+            os.makedirs(os.path.dirname(args.GPT_ckpt), exist_ok=True)
             torch.save(net.state_dict(),args.net_ckpt )
             torch.save(model_gpt.state_dict(),args.GPT_ckpt )
            
@@ -566,9 +584,13 @@ for epoch in range(start_epoch, args.n_epochs):
         if usewandb:
             wandb.log({'epoch': epoch, 'train_loss': trainloss, 'val_loss': val_loss, "val_acc": acc, "lr": optimizer.param_groups[0]["lr"],
             "epoch_time": time.time()-start})
+        
     else:
         if usewandb:
             wandb.log({'epoch': epoch, 'train_loss': trainloss, "lr": optimizer.param_groups[0]["lr"],
             "epoch_time": time.time()-start})
+    
+    if epoch==(args.n_epochs-1):
+        wandb.finish()
 
     

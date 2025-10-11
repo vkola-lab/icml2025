@@ -148,6 +148,7 @@ class CausalSelfAttention(nn.Module):
         #                    [1., 0., 0., 1., 0., 0., 1., 0., 0., 0., 0., 0.],
         #                    [1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0.]])
         self.register_buffer("mask",mask)
+        
         #print(self.mask)
         self.mask = torch.repeat_interleave(self.mask,3,dim=0).view(1, 1, 3*config.block_size, 3*config.block_size)
         #print(self.mask)

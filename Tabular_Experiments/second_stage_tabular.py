@@ -14,18 +14,15 @@ import pandas as pd
 import csv
 import time
 
-from models import *
-
 from copy import deepcopy
 from torch.utils.data import Dataset
-from fastshap.utils import MaskLayer
 
 from tabular_dataset import get_dataset, data_split
 from torchmetrics import  Accuracy, AUROC
 
 from tabular_dataset import get_dataset, data_split
 import os
-from gpt_model import GPT, GPTConfig
+from model_gpt import GPT, GPTConfig
 print(os.getenv("CUDA_VISIBLE_DEVICES"))
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 from torch.utils.data import Dataset
@@ -47,7 +44,7 @@ parser.add_argument('--dp', action='store_true', help='use data parallel')
 
 parser.add_argument('--net_ckpt')
 parser.add_argument('--GPT_ckpt')
-parser.add_argument('--GPT_fea_ckpt')
+
 parser.add_argument('--n_blocks', type=int, default='8')
 parser.add_argument('--n_layer', type=int, default='3')
 parser.add_argument('--n_convs', type=int, default='2')
@@ -59,7 +56,6 @@ parser.add_argument('--n_embd',  type=int)
 parser.add_argument('--max_fea', type=int, default='50')
 parser.add_argument('--max_val_fea', type=int, default='20')
 
-parser.add_argument('--shared_backbone', action='store_true', help="Enable the feature")
 parser.add_argument('--n_epochs', type=int, default='16')
 
 parser.add_argument('--init_fea',  type=int)
@@ -71,11 +67,25 @@ parser.add_argument('--wandb_project')
 parser.add_argument('--dataset_path')
 args = parser.parse_args()
 
+class MaskLayer(nn.Module):
+    '''
+    Mask layer for tabular data.
+    
+    Args:
+      append:
+      mask_size:
+    '''
+    def __init__(self, append, mask_size=None):
+        super().__init__()
+        self.append = append
+        self.mask_size = mask_size
 
-def restore_parameters(model, best_model):
-    '''Move parameters from best model to current model.'''
-    for param, best_param in zip(model.parameters(), best_model.parameters()):
-        param.data = best_param
+    def forward(self, x, m):
+        out = x * m
+        if self.append:
+            out = torch.cat([out, m], dim=1)
+        return out
+
 
 
 # take in args
@@ -186,8 +196,8 @@ mask_layer = MaskLayer(append=True)
 
 
 
-net.load_state_dict(torch.load(args.net_ckpt)) #_layer3_head8_block8_start0
-model_gpt.load_state_dict(torch.load(args.GPT_ckpt)) #_start0
+net.load_state_dict(torch.load(args.net_ckpt, map_location=device)) #_layer3_head8_block8_start0
+model_gpt.load_state_dict(torch.load(args.GPT_ckpt,map_location=device)) #_start0
 
 optimizer = optim.Adam(set(list(net.parameters()) +list(model_gpt.parameters())), lr=args.lr, weight_decay=1e-3)
 
@@ -476,6 +486,8 @@ for epoch in range(start_epoch, args.n_epochs):
         if usewandb:
             wandb.log({'epoch': epoch, 'train_loss': trainloss, 'val_loss': val_loss, "val_acc": acc, "lr": optimizer.param_groups[0]["lr"],
             "epoch_time": time.time()-start})
+            if epoch==(args.n_epochs-1):
+                wandb.finish()
     else:
         if usewandb:
             wandb.log({'epoch': epoch, 'train_loss': trainloss, "lr": optimizer.param_groups[0]["lr"],

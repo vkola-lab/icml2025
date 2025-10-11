@@ -1,7 +1,7 @@
 # Active feature acquisition via explainability-driven ranking (ICML 2025)
 This is the official repository of work titled, "Active feature acquisition via explainability-driven ranking", accepted in ICML 2025 (https://icml.cc/virtual/2025/poster/45710).
 
-**Repository in development — updates coming soon!**
+In many real-world settings (e.g., medicine), collecting every feature is infeasible due to time, cost, and resource constraints. We propose an active feature acquisition (AFA) method that uses local explanations to rank features per instance and a decision-transformer policy to sequentially acquire the next most informative feature. Across multiple datasets, this explainability-driven policy improves predictive accuracy while reducing acquisition cost versus state-of-the-art AFA baselines.
 
 |![alt text](framework.jpeg)|
 |:--:| 
@@ -11,8 +11,17 @@ This is the official repository of work titled, "Active feature acquisition via 
 Create a conda environment using the "afa_env.yml" file:
 
 ```bash
-conda env create -f afa_env.yml -n <name>
+conda env create -f afa_env.yml
 ```
+Then, activate:
+
+```bash
+conda activate afa_env
+```
+
+## Evaluation
+This repo provides separate folders for the image and tabular experiments. Each folder includes all scripts, and instructions needed to run our method end to end (see the folder-level README for setup and commands).
+
 ## References
 [1] Chen, Lili, et al. "Decision transformer: Reinforcement learning via sequence modeling." Advances in neural information processing systems 34 (2021): 15084-15097.
 

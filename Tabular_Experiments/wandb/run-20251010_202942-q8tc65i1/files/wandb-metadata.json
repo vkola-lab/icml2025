@@ -1,0 +1,255 @@
+{
+    "os": "Linux-4.18.0-553.70.1.el8_10.x86_64-x86_64-with-glibc2.28",
+    "python": "3.11.13",
+    "heartbeatAt": "2025-10-11T00:29:42.769297",
+    "startedAt": "2025-10-11T00:29:42.353441",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "--n_layer",
+        "3",
+        "--n_head",
+        "4",
+        "--n_blocks",
+        "4",
+        "--lr",
+        "1e-3",
+        "--n_hidden",
+        "512",
+        "--n_embd",
+        "128",
+        "--n_epochs",
+        "16",
+        "--wandb_project",
+        "spam",
+        "--wandb_name",
+        "v1_second_stage",
+        "--max_fea",
+        "35",
+        "--max_val_fea",
+        "20",
+        "--init_fea",
+        "52",
+        "--second_fea",
+        "6",
+        "--third_fea",
+        "15",
+        "--dataset",
+        "spam",
+        "--net_ckpt",
+        "ckpts/net_three_fea_nlayer3_nhead4_nblocks4_nhidden512_nembd128_nepochs200_maxfea35_spam_lr1e-3.ckpt",
+        "--GPT_ckpt",
+        "ckpts/GPT_three_fea_nlayer3_nhead4_nblocks4_nhidden512_nembd128_nepochs200_maxfea35_spam_lr1e-3.ckpt"
+    ],
+    "state": "running",
+    "program": "/projectnb/vkolagrp/projects/active_feature_acquisition/icml2025/Tabular_Experiments/second_stage_tabular.py",
+    "codePathLocal": "second_stage_tabular.py",
+    "codePath": "Tabular_Experiments/second_stage_tabular.py",
+    "git": {
+        "remote": "https://github.com/vkola-lab/icml2025.git",
+        "commit": "aa3842a67b3f9a9fa81bb04313ad2028d87877df"
+    },
+    "email": "berke@bu.edu",
+    "root": "/projectnb/vkolagrp/projects/active_feature_acquisition/icml2025",
+    "host": "scc-j11",
+    "username": "berke",
+    "executable": "/projectnb/vkolagrp/projects/active_feature_acquisition/envs/dummy_env/bin/python",
+    "cpu_count": 32,
+    "cpu_count_logical": 32,
+    "cpu_freq": {
+        "current": 4100.0,
+        "min": 800.0,
+        "max": 4100.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        },
+        {
+            "current": 4100.0,
+            "min": 800.0,
+            "max": 4100.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 19.518142700195312,
+            "used": 15.229022979736328
+        }
+    },
+    "gpu": "NVIDIA L40S",
+    "gpu_count": 4,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA L40S",
+            "memory_total": 48305799168
+        },
+        {
+            "name": "NVIDIA L40S",
+            "memory_total": 48305799168
+        },
+        {
+            "name": "NVIDIA L40S",
+            "memory_total": 48305799168
+        },
+        {
+            "name": "NVIDIA L40S",
+            "memory_total": 48305799168
+        }
+    ],
+    "memory": {
+        "total": 250.91121292114258
+    }
+}

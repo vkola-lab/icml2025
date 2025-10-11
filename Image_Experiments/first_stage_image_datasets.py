@@ -601,7 +601,6 @@ best_acc = 0  # best test accuracy
 start_epoch = 0  # start from epoch 0 or last checkpoint epoch    
 
 # Call training function for each epoch and call validation function for each 5 epochs
-# I call this training stage as the second stage
 for epoch in range(start_epoch, args.n_epochs):
     start = time.time()
     trainloss = train(epoch)
@@ -609,7 +608,9 @@ for epoch in range(start_epoch, args.n_epochs):
         val_loss, acc = test(epoch)
         if acc > best_acc:
             best_acc = acc
-            torch.save(net.state_dict(),args.net_ckpt) #vit_init_fea_134_lr_1e5_nconvs8 with bnorm
+            os.makedirs(os.path.dirname(args.net_ckpt), exist_ok=True)
+            os.makedirs(os.path.dirname(args.GPT_ckpt), exist_ok=True)
+            torch.save(net.state_dict(),args.net_ckpt) 
             torch.save(model_gpt.state_dict(),args.GPT_ckpt )
             if args.shared_backbone == False:
                 torch.save(fea_extractor_gpt.state_dict(),args.GPT_fea_ckpt)
@@ -626,6 +627,10 @@ for epoch in range(start_epoch, args.n_epochs):
         if usewandb:
             wandb.log({'epoch': epoch, 'train_loss': trainloss, "lr": optimizer.param_groups[0]["lr"],
             "epoch_time": time.time()-start})
+    
+    if epoch==(args.n_epochs-1):
+        wandb.finish()
+
  
 
 

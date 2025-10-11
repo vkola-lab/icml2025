@@ -334,10 +334,7 @@ def train(epoch):
                 actions[count_img,j,0] = sorted_indices_predicted[count_img,-(i+j+1)]
             timesteps[count_img,0,0] = i+1
             count_img += 1
-        #print(sorted_indices_predicted)
-        #print(S_new)
-        #print(targets_gpt)
-        #import time;time.sleep(100)
+      
         S_new = S_new.to(device)
         targets_gpt = targets_gpt.to(device)
         targets_gpt = targets_gpt.to(torch.int64)
@@ -345,10 +342,9 @@ def train(epoch):
         timesteps = timesteps.to(device)
         timesteps = timesteps.to(torch.int64)
         S_reshaped = imp.resize(S_new)
-        #inputs = torch.repeat_interleave(inputs,block_size,dim=0)
+
         inputs = inputs_all * S_reshaped
        
-        #outputs= net(inputs)
 
         outputs, state_embeddings = net(inputs,fea_return=True) #,S_reshaped
         if args.shared_backbone == False:
@@ -357,11 +353,9 @@ def train(epoch):
         loss = (1.0)*criterion(outputs, torch.repeat_interleave(targets,block_size,dim=0))
 
         rewards = F.softmax(outputs,dim=1).detach()
-        #out_gpt = model_gpt(states = inputs, actions = actions, targets = targets_gpt, rtgs = rewards, timesteps = timesteps)                
+         
         out_gpt = model_gpt(state_embeddings = state_embeddings, actions = actions, targets = targets_gpt, rtgs = rewards, timesteps = timesteps)
         
-        #rewards = F.softmax(outputs,dim=1).detach()
-        #out_gpt = model_gpt(states = inputs, actions = actions, targets = targets_gpt, rtgs = rewards, timesteps = timesteps)
         out_gpt = out_gpt.reshape(-1, out_gpt.size(-1))
         out_gpt = out_gpt - S_new*1e6
         loss += (1.0)*F.cross_entropy(out_gpt, targets_gpt.reshape(-1))
@@ -452,8 +446,7 @@ def test(epoch):
                             
                             actions = torch.cat((actions,actions_to_add),dim=1)
                             S_old = S_new
-                            S_new = torch.repeat_interleave(S,count_block,dim=0)
-                            #S_new[torch.arange(count_block-1,S_new.shape[0],count_block),:] = S_new[torch.arange(count_block-2,S_new.shape[0],count_block),:]
+                            S_new = torch.repeat_interleave(S,count_block,dim=0)                
                             for ijk_tmp in range(1,count_block-1):
                                 S_new[torch.arange(ijk_tmp,S_new.shape[0],count_block),:] = S_old[torch.arange(ijk_tmp,S_old.shape[0],count_block-1),:]
 
@@ -469,12 +462,9 @@ def test(epoch):
                         else:
                             timesteps += 1
                             actions[:,0:(block_size-1),0] = actions[:,1:block_size,0]
-                            #print(out_gpt_pred)
-                            #print(count_block)
                             actions[torch.arange(input_batch_size),(block_size-1),0]=out_gpt_pred.to(torch.float)
-                            #S_new[0:(S_new.shape[0]-1),:] = S_new[1:(S_new.shape[0]),:]
+                            
                             S_new = torch.roll(S_new,-1,0)
-                            #S_new[0,:] = S_new[1,:]
                             S_new[torch.arange(block_size-1,S_new.shape[0],block_size),:]=S_new[torch.arange(block_size-2,S_new.shape[0],block_size),:]
                             S_new[torch.arange(block_size-1,S_new.shape[0],block_size),out_gpt_pred] = 1.0
                             S_reshaped = imp.resize(S_new)
@@ -483,9 +473,9 @@ def test(epoch):
                     _,predicted = torch.max(outputs, 1)
                     
                     if ijk >= (block_size-1):
-                        predicted=predicted[torch.arange((block_size-1),predicted.shape[0],block_size)] #count_block-2::count_block-1
+                        predicted=predicted[torch.arange((block_size-1),predicted.shape[0],block_size)] 
                     else:
-                        predicted=predicted[torch.arange(count_block-3,predicted.shape[0],count_block-2)] #count_block-2::count_block-1
+                        predicted=predicted[torch.arange(count_block-3,predicted.shape[0],count_block-2)] 
                    
                     correct[ijk] += predicted.eq(targets).sum().item()
 
@@ -511,15 +501,13 @@ for epoch in range(start_epoch, args.n_epochs):
         val_loss, acc = test(epoch)
         if acc > best_acc:
             best_acc = acc
-            torch.save(net.state_dict(),args.net_ckpt.replace('.ckpt', '_second_stage.ckpt')) #vit_init_fea_134_lr_1e5_nconvs8 with bnorm
+            torch.save(net.state_dict(),args.net_ckpt.replace('.ckpt', '_second_stage.ckpt')) 
             torch.save(model_gpt.state_dict(),args.GPT_ckpt.replace('.ckpt', '_second_stage.ckpt'))
             if args.shared_backbone == False:
                 torch.save(fea_extractor_gpt.state_dict(),args.GPT_fea_ckpt.replace('.ckpt', '_second_stage.ckpt'))
         
     
-    scheduler.step(epoch-1) # step cosine scheduling      
-    #list_loss.append(val_loss)     
-    #list_acc.append(acc)
+    scheduler.step(epoch-1) 
     
     # Log training..
     if (epoch)%val_period==0 or (epoch==(args.n_epochs-1)) :
@@ -530,5 +518,8 @@ for epoch in range(start_epoch, args.n_epochs):
         if usewandb:
             wandb.log({'epoch': epoch, 'train_loss': trainloss, "lr": optimizer.param_groups[0]["lr"],
             "epoch_time": time.time()-start})
+    if epoch==(args.n_epochs-1):
+        wandb.finish()
+
 
     

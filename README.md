@@ -1,4 +1,4 @@
-# Active feature acquisition via explainability-driven ranking (ICML 2025)
+# Active feature acquisition via explainability-driven ranking
 This work is published in PMLR 2025 (https://proceedings.mlr.press/v267/guney25a.html) and presented at ICML 2025 (https://icml.cc/virtual/2025/poster/45710).
 
 In many real-world settings (e.g., medicine), collecting every feature is infeasible due to time, cost, and resource constraints. We propose an active feature acquisition (AFA) method that uses local explanations to rank features per instance and a decision-transformer policy to sequentially acquire the next most informative feature. Across multiple datasets, this explainability-driven policy improves predictive accuracy while reducing acquisition cost versus state-of-the-art AFA baselines.
